@@ -1,0 +1,846 @@
+<!-- edit_timetable.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Timetable</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f5f5f5;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #3f51b5;
+            color: white;
+            font-weight: bold;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        .btn-primary {
+            background-color: #3f51b5;
+            border-color: #3f51b5;
+        }
+        .btn-primary:hover {
+            background-color: #303f9f;
+            border-color: #303f9f;
+        }
+        .timetable-cell {
+            height: 100px;
+            position: relative;
+            border: 1px solid #dee2e6;
+            cursor: grab;
+            transition: all 0.2s;
+            background-color: white;
+        }
+        .timetable-cell:hover {
+            background-color: #f8f9fa;
+        }
+        .timetable-cell.dragover {
+            background-color: #e9ecef;
+            border: 2px dashed #6c757d;
+        }
+        .timetable-content {
+            font-size: 0.85rem;
+            padding: 8px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .cell-actions {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            display: none;
+        }
+        .timetable-cell:hover .cell-actions {
+            display: block;
+        }
+        .form-select {
+            font-size: 0.85rem;
+            padding: 4px;
+        }
+        .sticky-top-offset {
+            top: 20px;
+        }
+        .subject-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+        .subject-item {
+            padding: 10px;
+            margin-bottom: 5px;
+            background-color: #fff;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+            cursor: grab;
+        }
+        .subject-item:hover {
+            background-color: #f8f9fa;
+        }
+        .remove-btn {
+            font-size: 12px;
+            padding: 0px 5px;
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            display: none;
+        }
+        .timetable-cell:hover .remove-btn {
+            display: block;
+        }
+        .batch-tabs {
+            overflow-x: auto;
+            white-space: nowrap;
+            flex-wrap: nowrap;
+            margin-bottom: 1rem;
+        }
+        .batch-tabs .nav-link {
+            white-space: normal;
+            word-wrap: break-word;
+            min-width: 150px;
+        }
+        .period-header {
+            font-weight: bold;
+            background-color: #e9ecef;
+        }
+        .day-header {
+            font-weight: bold;
+            background-color: #e9ecef;
+        }
+
+        /* New styles for subject summary and printing */
+        .summary-table {
+            margin-top: 20px;
+        }
+
+        .print-section {
+            display: none;
+        }
+
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-section {
+                display: block;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            .print-header {
+                text-align: center;
+                margin-bottom: 20px;
+            }
+
+            .print-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 15px;
+            }
+
+            .print-table th, .print-table td {
+                border: 1px solid #000;
+                padding: 5px;
+                text-align: center;
+            }
+
+            .page-break {
+                page-break-after: always;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row mb-4 no-print">
+        <div class="col-12 text-center">
+            <h1 class="display-4">Edit Timetable</h1>
+            <p class="lead">Drag and drop subjects to rearrange the timetable</p>
+            <div class="d-flex justify-content-center gap-3">
+                <button id="save-timetable" class="btn btn-primary">Save Changes</button>
+                <a href="{{ url_for('view_saved_timetable') }}" class="btn btn-outline-secondary">View Saved
+                    Timetable</a>
+                <a href="{{ url_for('print_timetable') }}" class="btn btn-outline-primary">Advanced Print View</a>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Back to Home</a>
+                <button id="print-timetable" class="btn btn-outline-primary">Print Timetable</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row no-print">
+        <div class="col-md-9">
+            <!-- Batch tabs -->
+            <ul class="nav nav-tabs batch-tabs" id="batchTabs" role="tablist">
+                {% for batch in batches %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if loop.first %}active{% endif %}"
+                            id="batch-{{ loop.index }}-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#batch-{{ loop.index }}"
+                            type="button"
+                            role="tab"
+                            aria-controls="batch-{{ loop.index }}"
+                            aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                        {% set parts = batch.split(",") %}
+                        {% set course_id = parts[0].strip("{}") %}
+                        {% set course_name = course_map[course_id] %}
+
+                        <!-- Print course_name, year (batch[1]), semester (batch[2]), and batch_id (batch[3]) -->
+                        Timetable for {{ course_name }}<br>
+                        Admission Year {{ parts[1] }}<br>
+                        Semester {{ parts[2] }}<br>
+                        Batch {{ parts[3] }}
+                    </button>
+                </li>
+                {% endfor %}
+            </ul>
+
+            <!-- Timetable tab content -->
+            <div class="tab-content" id="batchTabContent">
+                {% for batch in batches %}
+                <div class="tab-pane fade {% if loop.first %}show active{% endif %}"
+                     id="batch-{{ loop.index }}"
+                     role="tabpanel"
+                     aria-labelledby="batch-{{ loop.index }}-tab">
+
+                    <div class="card">
+                        <div class="card-header">
+                            <!-- Extract course_id to get course_name -->
+                            {% set parts = batch.split(",") %}
+                            {% set course_id = parts[0].strip("{}") %}
+                            {% set course_name = course_map[course_id] %}
+
+                            <!-- Print course_name, year (batch[1]), semester (batch[2]), and batch_id (batch[3]) -->
+                            Timetable for {{ course_name }}<br>
+                            Admission Year {{ parts[1] }}<br>
+                            Semester {{ parts[2] }}<br>
+                            Batch {{ parts[3] }}
+                        </div>
+                        <div class="card-body p-2">
+                            <div class="table-responsive">
+                                <table class="table table-bordered timetable-table" data-batch="{{ batch }}">
+                                    <thead>
+                                    <tr>
+                                        <th class="text-center">Day/Period</th>
+                                        {% for i in range(periods_per_day) %}
+                                        <th class="text-center period-header">
+                                            Period {{ i+1 }}
+                                            {% if i == 2 %}
+                                            <div><small>(Before Lunch)</small></div>
+                                            {% elif i == 3 %}
+                                            <div><small>(After Lunch)</small></div>
+                                            {% endif %}
+                                        </th>
+                                        {% endfor %}
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for day in days %}
+                                    <tr>
+                                        <td class="text-center day-header">{{ day }}</td>
+                                        {% for i in range(periods_per_day) %}
+                                        <td class="timetable-cell"
+                                            data-day="{{ day }}"
+                                            data-period="{{ i }}"
+                                            ondrop="drop(event)"
+                                            ondragover="allowDrop(event)"
+                                            ondragleave="dragLeave(event)">
+
+                                            {% if timetable[batch][day][i] %}
+                                            <div class="timetable-content"
+                                                 draggable="true"
+                                                 ondragstart="drag(event)"
+                                                 data-subject-id="{{ timetable[batch][day][i].subject_id }}"
+                                                 data-teacher-id="{{ timetable[batch][day][i].teacher_id }}"
+                                                 data-subject-name="{{ timetable[batch][day][i].subject_name }}"
+                                                 data-teacher-name="{{ timetable[batch][day][i].teacher_name }}">
+
+                                                <button class="btn btn-sm btn-danger remove-btn"
+                                                        onclick="removeSubject(this)">×
+                                                </button>
+                                                <strong>{{ timetable[batch][day][i].subject_name }}</strong>
+                                                <small>{{ timetable[batch][day][i].teacher_name }}</small>
+                                            </div>
+                                            {% endif %}
+                                        </td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subject Summary Section -->
+                    <div class="card summary-table">
+                        <div class="card-header">
+                            Subject Summary
+                        </div>
+                        <div class="card-body p-2">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped">
+                                    <thead>
+                                    <tr>
+                                        <th>Subject Name</th>
+                                        <th>Subject Code</th>
+                                        <th>Teacher</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="summary-table-body-{{ loop.index }}">
+                                    <!-- Will be filled dynamically with JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card sticky-top sticky-top-offset">
+                <div class="card-header">
+                    Available Subjects
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="batchSelect" class="form-label">Select Batch:</label>
+                        <select class="form-select" id="batchSelect" onchange="updateSubjectsList()">
+                            {% for batch in batches %}
+                            <option value="{{ batch }}">{% set parts = batch.split(",") %}
+                                {% set course_id = parts[0].strip("{}") %}
+                                {% set course_name = course_map[course_id] %}
+
+                                <!-- Print course_name, year (batch[1]), semester (batch[2]), and batch_id (batch[3]) -->
+                                Timetable for {{ course_name }}<br>
+                                Admission Year {{ parts[1] }}<br>
+                                Semester {{ parts[2] }}<br>
+                                Batch {{ parts[3] }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div id="subjectsList" class="subject-list">
+                        {% for subject_name, subject_data in all_subjects[batches[0]].items() %}
+                        <div class="subject-item">
+                            <div><strong>{{ subject_name }}</strong> ({{ subject_data.subject_code }})</div>
+                            <div class="mt-1">
+                                <label class="form-label">Select Teacher:</label>
+                                <select class="form-select teacher-select">
+                                    {% for teacher in subject_data.teachers %}
+                                    <option value="{{ teacher.teacher_id }}">{{ teacher.teacher_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <button class="btn btn-sm btn-primary mt-2"
+                                    onclick="addSubject('{{ subject_name }}', '{{ subject_data.subject_id }}', this)">
+                                Add to Timetable
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Print Section (Hidden until print) -->
+<div class="print-section">
+    <div class="print-header">
+        <h2 id="print-title"></h2>
+        <p id="print-details"></p>
+    </div>
+
+    <h3>Timetable</h3>
+    <table class="print-table" id="print-timetable-table">
+        <!-- Will be filled dynamically when printing -->
+    </table>
+
+    <div class="page-break"></div>
+
+    <h3>Subject Summary</h3>
+    <table class="print-table" id="print-summary-table">
+        <thead>
+        <tr>
+            <th>Subject Name</th>
+            <th>Subject Code</th>
+            <th>Teacher</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- Will be filled dynamically when printing -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Save Timetable Form (hidden) -->
+<form id="save-form" action="{{ url_for('update_timetable') }}" method="POST" style="display: none;">
+    <input type="hidden" id="timetable-data" name="timetable_data" value="">
+</form>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Store all subjects data
+    const allSubjects = {{ all_subjects|tojson }};
+
+    // Current active batch (start with the first one)
+    let currentBatch = '{{ batches[0] }}';
+
+    // Update the subjects list when batch changes
+    function updateSubjectsList() {
+        currentBatch = document.getElementById('batchSelect').value;
+        const subjectsListElement = document.getElementById('subjectsList');
+
+        // Clear existing content
+        subjectsListElement.innerHTML = '';
+
+        // Add subjects for selected batch
+        const batchSubjects = allSubjects[currentBatch];
+        for (const [subjectName, subjectData] of Object.entries(batchSubjects)) {
+            const subjectElement = document.createElement('div');
+            subjectElement.className = 'subject-item';
+
+            let teacherOptions = '';
+            subjectData.teachers.forEach(teacher => {
+                teacherOptions += `<option value="${teacher.teacher_id}">${teacher.teacher_name}</option>`;
+            });
+
+            subjectElement.innerHTML = `
+                <div><strong>${subjectName}</strong> (${subjectData.subject_code})</div>
+                <div class="mt-1">
+                    <label class="form-label">Select Teacher:</label>
+                    <select class="form-select teacher-select">
+                        ${teacherOptions}
+                    </select>
+                </div>
+                <button class="btn btn-sm btn-primary mt-2"
+                        onclick="addSubject('${subjectName}', '${subjectData.subject_id}', this)">
+                    Add to Timetable
+                </button>
+            `;
+
+            subjectsListElement.appendChild(subjectElement);
+        }
+
+        // Also update the active tab to match the selected batch
+        const batchIndex = Array.from(document.querySelectorAll('#batchTabs .nav-link'))
+            .findIndex(tab => tab.textContent.trim() === currentBatch);
+
+        if (batchIndex !== -1) {
+            const tabToActivate = document.querySelector(`#batch-${batchIndex + 1}-tab`);
+            if (tabToActivate) {
+                bootstrap.Tab.getOrCreateInstance(tabToActivate).show();
+            }
+        }
+
+        // Update the subject summary table
+        updateSubjectSummary();
+    }
+
+    // Update the subject summary table for the current batch
+    function updateSubjectSummary() {
+        // Find which batch tab is active
+        const activeTab = document.querySelector('#batchTabs .nav-link.active');
+        if (!activeTab) return;
+
+        // Get the index of the active batch (1-based)
+        const batchIndex = activeTab.id.split('-')[1];
+
+        // Get the summary table body
+        const summaryTableBody = document.getElementById(`summary-table-body-${batchIndex}`);
+        if (!summaryTableBody) return;
+
+        // Clear existing content
+        summaryTableBody.innerHTML = '';
+
+        // Get the subjects for this batch
+        const batchSubjects = allSubjects[currentBatch];
+        if (!batchSubjects) return;
+
+        // Get the timetable for this batch to find which teachers are assigned
+        const assignedSubjects = new Map();
+
+        // Get all cells in the current batch's timetable
+        const timetableTable = document.querySelector(`table.timetable-table[data-batch="${currentBatch}"]`);
+        if (timetableTable) {
+            const cells = timetableTable.querySelectorAll('.timetable-cell .timetable-content');
+            cells.forEach(cell => {
+                const subjectName = cell.getAttribute('data-subject-name');
+                const teacherName = cell.getAttribute('data-teacher-name');
+
+                // Store the subject and its assigned teacher
+                assignedSubjects.set(subjectName, teacherName);
+            });
+        }
+
+        // Add each subject to the summary table
+        for (const [subjectName, subjectData] of Object.entries(batchSubjects)) {
+            const tr = document.createElement('tr');
+
+            // Get the assigned teacher, or use the first available one if none assigned
+            let assignedTeacher = assignedSubjects.get(subjectName);
+            if (!assignedTeacher && subjectData.teachers.length > 0) {
+                assignedTeacher = subjectData.teachers[0].teacher_name;
+            }
+
+            tr.innerHTML = `
+                <td>${subjectName}</td>
+                <td>${subjectData.subject_code}</td>
+                <td>${assignedTeacher || 'Not assigned'}</td>
+            `;
+
+            summaryTableBody.appendChild(tr);
+        }
+    }
+
+    // Add subject to the currently selected cell
+    function addSubject(subjectName, subjectId, buttonElement) {
+        const selectedCell = document.querySelector('.timetable-cell.selected');
+        if (!selectedCell) {
+            alert('Please select a cell in the timetable first');
+            return;
+        }
+
+        // Get the selected teacher
+        const teacherSelect = buttonElement.previousElementSibling.querySelector('.teacher-select');
+        const teacherId = teacherSelect.value;
+        const teacherName = teacherSelect.options[teacherSelect.selectedIndex].text;
+
+        // Create content for the cell
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'timetable-content';
+        contentDiv.draggable = true;
+        contentDiv.setAttribute('ondragstart', 'drag(event)');
+        contentDiv.setAttribute('data-subject-id', subjectId);
+        contentDiv.setAttribute('data-teacher-id', teacherId);
+        contentDiv.setAttribute('data-subject-name', subjectName);
+        contentDiv.setAttribute('data-teacher-name', teacherName);
+
+        contentDiv.innerHTML = `
+            <button class="btn btn-sm btn-danger remove-btn" onclick="removeSubject(this)">×</button>
+            <strong>${subjectName}</strong>
+            <small>${teacherName}</small>
+        `;
+
+        // If the cell already has content, remove it
+        while (selectedCell.firstChild) {
+            selectedCell.removeChild(selectedCell.firstChild);
+        }
+
+        // Add the new content
+        selectedCell.appendChild(contentDiv);
+
+        // Remove the 'selected' class
+        selectedCell.classList.remove('selected');
+
+        // Update the subject summary table
+        updateSubjectSummary();
+    }
+
+    // Remove subject from cell
+    function removeSubject(button) {
+        const contentDiv = button.parentElement;
+        const cell = contentDiv.parentElement;
+        cell.removeChild(contentDiv);
+
+        // Update the subject summary table
+        updateSubjectSummary();
+    }
+
+    // Drag and drop functionality
+    function drag(ev) {
+        const content = ev.target;
+        ev.dataTransfer.setData('text/plain', ''); // Required for Firefox
+        ev.dataTransfer.setData('subject-id', content.getAttribute('data-subject-id'));
+        ev.dataTransfer.setData('teacher-id', content.getAttribute('data-teacher-id'));
+        ev.dataTransfer.setData('subject-name', content.getAttribute('data-subject-name'));
+        ev.dataTransfer.setData('teacher-name', content.getAttribute('data-teacher-name'));
+    }
+
+    function allowDrop(ev) {
+        ev.preventDefault();
+        ev.currentTarget.classList.add('dragover');
+    }
+
+    function dragLeave(ev) {
+        ev.currentTarget.classList.remove('dragover');
+    }
+
+    function drop(ev) {
+        ev.preventDefault();
+        const targetCell = ev.currentTarget;
+        targetCell.classList.remove('dragover');
+
+        // Get the data
+        const subjectId = ev.dataTransfer.getData('subject-id');
+        const teacherId = ev.dataTransfer.getData('teacher-id');
+        const subjectName = ev.dataTransfer.getData('subject-name');
+        const teacherName = ev.dataTransfer.getData('teacher-name');
+
+        if (!subjectId || !teacherId) return; // Skip if no data
+
+        // If swapping with another subject, store the other cell's content
+        let otherContent = null;
+        if (targetCell.querySelector('.timetable-content')) {
+            otherContent = targetCell.querySelector('.timetable-content');
+            otherContent.remove();
+        }
+
+        // Create new content for the target cell
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'timetable-content';
+        contentDiv.draggable = true;
+        contentDiv.setAttribute('ondragstart', 'drag(event)');
+        contentDiv.setAttribute('data-subject-id', subjectId);
+        contentDiv.setAttribute('data-teacher-id', teacherId);
+        contentDiv.setAttribute('data-subject-name', subjectName);
+        contentDiv.setAttribute('data-teacher-name', teacherName);
+
+        contentDiv.innerHTML = `
+            <button class="btn btn-sm btn-danger remove-btn" onclick="removeSubject(this)">×</button>
+            <strong>${subjectName}</strong>
+            <small>${teacherName}</small>
+        `;
+
+        // Add to the target cell
+        targetCell.appendChild(contentDiv);
+
+        // If we removed content from the target cell, and it's a valid drag operation
+        // (not just adding a new subject), we need to handle the swap
+        if (otherContent && ev.dataTransfer.dropEffect !== 'none') {
+            // Try to find the source cell (where the drag started)
+            const sourceCells = document.querySelectorAll('.timetable-cell');
+            let sourceCell = null;
+
+            for (const cell of sourceCells) {
+                if (cell.contains(document.activeElement) || cell === document.activeElement) {
+                    sourceCell = cell;
+                    break;
+                }
+            }
+
+            // If we found the source cell, add the swapped content to it
+            if (sourceCell && sourceCell !== targetCell) {
+                sourceCell.appendChild(otherContent);
+            }
+        }
+
+        // Update the subject summary table
+        updateSubjectSummary();
+    }
+
+    // Print timetable function
+    function printTimetable() {
+        // Get active batch tab
+        const activeTab = document.querySelector('#batchTabs .nav-link.active');
+        if (!activeTab) return;
+
+        // Get batch details
+        const batchDetails = activeTab.textContent.trim();
+
+        // Set title and details for the print view
+        document.getElementById('print-title').textContent = `Timetable`;
+        document.getElementById('print-details').textContent = batchDetails;
+
+        // Get the current timetable table
+        const currentTimetableTable = document.querySelector('.tab-pane.active .timetable-table');
+        if (!currentTimetableTable) return;
+
+        // Clone the table for printing
+        const printTimetableTable = document.getElementById('print-timetable-table');
+
+        // Clear previous content
+        printTimetableTable.innerHTML = '';
+
+        // Clone the table header
+        const headerRow = document.createElement('tr');
+        const headers = currentTimetableTable.querySelectorAll('thead th');
+        headers.forEach(header => {
+            const th = document.createElement('th');
+            th.innerHTML = header.innerHTML;
+            headerRow.appendChild(th);
+        });
+
+        // Create thead and add header row
+        const thead = document.createElement('thead');
+        thead.appendChild(headerRow);
+        printTimetableTable.appendChild(thead);
+
+        // Clone the table body
+        const tbody = document.createElement('tbody');
+        const rows = currentTimetableTable.querySelectorAll('tbody tr');
+
+        rows.forEach(row => {
+            const newRow = document.createElement('tr');
+
+            // Clone each cell
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => {
+                const newCell = document.createElement('td');
+
+                // If it's a day header, just copy the text
+                if (cell.classList.contains('day-header')) {
+                    newCell.textContent = cell.textContent;
+                } else {
+                    // For subject cells, format appropriately for printing
+                    const content = cell.querySelector('.timetable-content');
+                    if (content) {
+                        const subjectName = content.getAttribute('data-subject-name');
+                        const teacherName = content.getAttribute('data-teacher-name');
+
+                        newCell.innerHTML = `
+                            <strong>${subjectName}</strong><br>
+                            <small>${teacherName}</small>
+                        `;
+                    }
+                }
+
+                newRow.appendChild(newCell);
+            });
+
+            tbody.appendChild(newRow);
+        });
+
+        printTimetableTable.appendChild(tbody);
+
+        // Populate the summary table
+        const summaryTable = document.getElementById('print-summary-table');
+        const summaryTbody = summaryTable.querySelector('tbody');
+        summaryTbody.innerHTML = '';
+
+        // Get the current summary table
+        const currentSummaryTable = document.querySelector('.tab-pane.active .summary-table table tbody');
+        if (currentSummaryTable) {
+            const summaryRows = currentSummaryTable.querySelectorAll('tr');
+            summaryRows.forEach(row => {
+                const newRow = document.createElement('tr');
+                const cells = row.querySelectorAll('td');
+
+                cells.forEach(cell => {
+                    const newCell = document.createElement('td');
+                    newCell.textContent = cell.textContent;
+                    newRow.appendChild(newCell);
+                });
+
+                summaryTbody.appendChild(newRow);
+            });
+        }
+
+        // Print the page
+        window.print();
+    }
+
+    // Cell selection
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add click event listeners to cells for selection
+        const cells = document.querySelectorAll('.timetable-cell');
+        cells.forEach(cell => {
+            cell.addEventListener('click', function() {
+                // Remove selected class from all cells
+                cells.forEach(c => c.classList.remove('selected'));
+                // Add selected class to clicked cell
+                this.classList.add('selected');
+            });
+        });
+
+        // Handle batch tab changes
+        const batchTabs = document.querySelectorAll('#batchTabs .nav-link');
+        batchTabs.forEach(tab => {
+            tab.addEventListener('shown.bs.tab', function(event) {
+                // Update the current batch when tab changes
+                currentBatch = event.target.textContent.trim();
+
+                // Update the batch select dropdown to match
+                const batchSelect = document.getElementById('batchSelect');
+                for (let i = 0; i < batchSelect.options.length; i++) {
+                    if (batchSelect.options[i].value === currentBatch) {
+                        batchSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+
+                // Update the subjects list
+                updateSubjectsList();
+            });
+        });
+
+        // Save button handler
+        document.getElementById('save-timetable').addEventListener('click', function() {
+            saveTimetable();
+        });
+
+        // Print button handler
+        document.getElementById('print-timetable').addEventListener('click', function() {
+            printTimetable();
+        });
+
+        // Initialize the subject summary
+        updateSubjectSummary();
+    });
+
+    // Save timetable to database
+    function saveTimetable() {
+        // Collect timetable data
+        const timetableData = {};
+
+        // Process all batches
+        {{ batches|tojson }}.forEach(batch => {
+            timetableData[batch] = {};
+
+            // Find the table for this batch
+            const table = document.querySelector(`table.timetable-table[data-batch="${batch}"]`);
+            if (!table) return;
+
+            // Process days and periods
+            {{ days|tojson }}.forEach(day => {
+                timetableData[batch][day] = [];
+
+                // For each period in this day
+                for (let period = 0; period < {{ periods_per_day }}; period++) {
+                    const cell = table.querySelector(`td[data-day="${day}"][data-period="${period}"]`);
+                    const content = cell ? cell.querySelector('.timetable-content
+                        const cell = table.querySelector(`td[data-day="${day}"][data-period="${period}"]`);
+                    const content = cell ? cell.querySelector('.timetable-content') : null;
+
+                    if (content) {
+                        timetableData[batch][day][period] = {
+                            subject_id: content.getAttribute('data-subject-id'),
+                            teacher_id: content.getAttribute('data-teacher-id'),
+                            subject_name: content.getAttribute('data-subject-name'),
+                            teacher_name: content.getAttribute('data-teacher-name')
+                        };
+                    } else {
+                        timetableData[batch][day][period] = null;
+                    }
+                }
+            });
+        });
+
+        // Set the form data
+        document.getElementById('timetable-data').value = JSON.stringify(timetableData);
+
+        // Submit the form
+        document.getElementById('save-form').submit();
+    }
+</script>
+</body>
+</html>

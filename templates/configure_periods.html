@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configure Subject Periods - Timetable Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f5f5f5;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        .card-header {
+            background-color: #3f51b5;
+            color: white;
+            font-weight: bold;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        .batch-header {
+            background-color: #7986cb;
+            color: white;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        .btn-primary {
+            background-color: #3f51b5;
+            border-color: #3f51b5;
+        }
+        .btn-primary:hover {
+            background-color: #303f9f;
+            border-color: #303f9f;
+        }
+        .btn-secondary {
+            background-color: #757575;
+            border-color: #757575;
+        }
+        .btn-secondary:hover {
+            background-color: #616161;
+            border-color: #616161;
+        }
+        .alert {
+            border-radius: 8px;
+        }
+        .table {
+            --bs-table-striped-bg: rgba(63, 81, 181, 0.05);
+        }
+        .validation-error {
+            color: #f44336;
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+        }
+        .form-control:focus {
+            border-color: #3f51b5;
+            box-shadow: 0 0 0 0.25rem rgba(63, 81, 181, 0.25);
+        }
+        .help-icon {
+            color: #3f51b5;
+            cursor: pointer;
+        }
+        .table th {
+            background-color: rgba(63, 81, 181, 0.1);
+        }
+        .breadcrumb {
+            margin-bottom: 1.5rem;
+        }
+        .input-group-text {
+            background-color: #e8eaf6;
+            color: #3f51b5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <!-- Breadcrumb -->
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Configure Subject Periods</li>
+                    </ol>
+                </nav>
+
+                <div class="text-center mb-4">
+                    <h1 class="display-5">Configure Subject Periods</h1>
+                    <p class="lead">Set how many periods each subject should be taught per day and week</p>
+                </div>
+
+                {% if request.args.get('success') %}
+                <div class="alert alert-success" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i>Subject periods have been successfully updated!
+                </div>
+                {% endif %}
+
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Configuration Instructions</span>
+                        <button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#instructionsCollapse" aria-expanded="false">
+                            <i class="bi bi-info-circle"></i>
+                        </button>
+                    </div>
+                    <div class="collapse" id="instructionsCollapse">
+                        <div class="card-body">
+                            <p>For each subject, set the following parameters:</p>
+                            <ul>
+                                <li><strong>Max Periods Per Day:</strong> The maximum number of times this subject can be taught in a single day. Value must be between 1 and 7.</li>
+                                <li><strong>Max Periods Per Week:</strong> The total number of periods this subject should be taught per week. This value must be greater than or equal to the Max Periods Per Day.</li>
+                            </ul>
+                            <p>These settings help the timetable generator create optimal schedules that respect your teaching requirements.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <form action="{{ url_for('save_periods') }}" method="post" id="periodsForm">
+                    <div class="d-flex justify-content-between mb-3">
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Back to Home
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i>Save All Changes
+                        </button>
+                    </div>
+
+                    {% for batch_name, subjects in batches.items() %}
+                    <div class="card">
+                        <div class="card-header">
+                            Batch: {{ batch_name }}
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 15%">Subject Code</th>
+                                            <th style="width: 40%">Subject Name</th>
+                                            <th style="width: 20%">Max Periods Per Day</th>
+                                            <th style="width: 25%">Max Periods Per Week</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for subject in subjects %}
+                                        <tr>
+                                            <td>{{ subject.subject_code }}</td>
+                                            <td>{{ subject.subject_name }}</td>
+                                            <td>
+                                                <div class="input-group">
+                                                    <input type="number"
+                                                           class="form-control day-input"
+                                                           name="subject_{{ subject.id }}_day"
+                                                           value="{{ subject.max_periods_per_day }}"
+                                                           min="1"
+                                                           max="7"
+                                                           data-subject-id="{{ subject.id }}"
+                                                           required>
+                                                    <span class="input-group-text">periods</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="input-group">
+                                                    <input type="number"
+                                                           class="form-control week-input"
+                                                           name="subject_{{ subject.id }}_week"
+                                                           value="{{ subject.max_periods_per_week }}"
+                                                           min="1"
+                                                           max="35"
+                                                           data-subject-id="{{ subject.id }}"
+                                                           required>
+                                                    <span class="input-group-text">periods</span>
+                                                </div>
+                                                <div class="validation-error" id="error-{{ subject.id }}"></div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-save me-2"></i>Save All Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dayInputs = document.querySelectorAll('.day-input');
+            const weekInputs = document.querySelectorAll('.week-input');
+
+            // Validate that max week periods is >= max day periods
+            function validateInputs() {
+                let isValid = true;
+
+                dayInputs.forEach(dayInput => {
+                    const subjectId = dayInput.dataset.subjectId;
+                    const weekInput = document.querySelector(`.week-input[data-subject-id="${subjectId}"]`);
+                    const errorDiv = document.getElementById(`error-${subjectId}`);
+
+                    const dayValue = parseInt(dayInput.value) || 0;
+                    const weekValue = parseInt(weekInput.value) || 0;
+
+                    if (weekValue < dayValue) {
+                        errorDiv.textContent = 'Weekly periods must be ≥ daily periods';
+                        isValid = false;
+                    } else {
+                        errorDiv.textContent = '';
+                    }
+                });
+
+                return isValid;
+            }
+
+            // Add event listeners for input changes
+            dayInputs.forEach(input => {
+                input.addEventListener('input', validateInputs);
+            });
+
+            weekInputs.forEach(input => {
+                input.addEventListener('input', validateInputs);
+            });
+
+            // Validate on form submit
+            const form = document.getElementById('periodsForm');
+            form.addEventListener('submit', function(event) {
+                if (!validateInputs()) {
+                    event.preventDefault();
+                    alert('Please fix the validation errors before submitting.');
+
+                    // Scroll to the first error
+                    const firstError = document.querySelector('.validation-error:not(:empty)');
+                    if (firstError) {
+                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            });
+
+            // Validate on page load
+            validateInputs();
+        });
+    </script>
+</body>
+</html>
