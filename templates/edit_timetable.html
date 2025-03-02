@@ -115,59 +115,11 @@
             font-weight: bold;
             background-color: #e9ecef;
         }
-
-        /* New styles for subject summary and printing */
-        .summary-table {
-            margin-top: 20px;
-        }
-
-        .print-section {
-            display: none;
-        }
-
-        @media print {
-            body {
-                background-color: white;
-                padding: 0;
-            }
-
-            .no-print {
-                display: none !important;
-            }
-
-            .print-section {
-                display: block;
-                width: 100%;
-                margin: 0;
-                padding: 0;
-            }
-
-            .print-header {
-                text-align: center;
-                margin-bottom: 20px;
-            }
-
-            .print-table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-bottom: 15px;
-            }
-
-            .print-table th, .print-table td {
-                border: 1px solid #000;
-                padding: 5px;
-                text-align: center;
-            }
-
-            .page-break {
-                page-break-after: always;
-            }
-        }
     </style>
 </head>
 <body>
 <div class="container-fluid">
-    <div class="row mb-4 no-print">
+    <div class="row mb-4">
         <div class="col-12 text-center">
             <h1 class="display-4">Edit Timetable</h1>
             <p class="lead">Drag and drop subjects to rearrange the timetable</p>
@@ -175,14 +127,13 @@
                 <button id="save-timetable" class="btn btn-primary">Save Changes</button>
                 <a href="{{ url_for('view_saved_timetable') }}" class="btn btn-outline-secondary">View Saved
                     Timetable</a>
-                <a href="{{ url_for('print_timetable') }}" class="btn btn-outline-primary">Advanced Print View</a>
+                <a id="print-timetable-link" href="{{ url_for('print_timetable') }}" class="btn btn-outline-primary">Advanced Print View</a>
                 <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Back to Home</a>
-                <button id="print-timetable" class="btn btn-outline-primary">Print Timetable</button>
             </div>
         </div>
     </div>
 
-    <div class="row no-print">
+    <div class="row">
         <div class="col-md-9">
             <!-- Batch tabs -->
             <ul class="nav nav-tabs batch-tabs" id="batchTabs" role="tablist">
@@ -197,14 +148,14 @@
                             aria-controls="batch-{{ loop.index }}"
                             aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
                         {% set parts = batch.split(",") %}
-                        {% set course_id = parts[0].strip("{}") %}
-                        {% set course_name = course_map[course_id] %}
+                            {% set course_id = parts[0].strip("{}") %}
+                            {% set course_name = course_map[course_id] %}
 
-                        <!-- Print course_name, year (batch[1]), semester (batch[2]), and batch_id (batch[3]) -->
-                        Timetable for {{ course_name }}<br>
-                        Admission Year {{ parts[1] }}<br>
-                        Semester {{ parts[2] }}<br>
-                        Batch {{ parts[3] }}
+                            <!-- Print course_name, year (batch[1]), semester (batch[2]), and batch_id (batch[3]) -->
+                            Timetable for {{ course_name }}<br>
+                            Admission Year {{ parts[1] }}<br>
+                            Semester {{ parts[2] }}<br>
+                            Batch {{ parts[3] }}
                     </button>
                 </li>
                 {% endfor %}
@@ -286,29 +237,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Subject Summary Section -->
-                    <div class="card summary-table">
-                        <div class="card-header">
-                            Subject Summary
-                        </div>
-                        <div class="card-body p-2">
-                            <div class="table-responsive">
-                                <table class="table table-bordered table-striped">
-                                    <thead>
-                                    <tr>
-                                        <th>Subject Name</th>
-                                        <th>Subject Code</th>
-                                        <th>Teacher</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody id="summary-table-body-{{ loop.index }}">
-                                    <!-- Will be filled dynamically with JavaScript -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 {% endfor %}
             </div>
@@ -322,18 +250,17 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <label for="batchSelect" class="form-label">Select Batch:</label>
-                        <select class="form-select" id="batchSelect" onchange="updateSubjectsList()">
+                        <select class="form-select" id="batchSelect" onchange="updateSubjectsList(); updatePrintTimetableLink();">
                             {% for batch in batches %}
                             <option value="{{ batch }}">{% set parts = batch.split(",") %}
-                                {% set course_id = parts[0].strip("{}") %}
-                                {% set course_name = course_map[course_id] %}
+                            {% set course_id = parts[0].strip("{}") %}
+                            {% set course_name = course_map[course_id] %}
 
-                                <!-- Print course_name, year (batch[1]), semester (batch[2]), and batch_id (batch[3]) -->
-                                Timetable for {{ course_name }}<br>
-                                Admission Year {{ parts[1] }}<br>
-                                Semester {{ parts[2] }}<br>
-                                Batch {{ parts[3] }}
-                            </option>
+                            <!-- Print course_name, year (batch[1]), semester (batch[2]), and batch_id (batch[3]) -->
+                            Timetable for {{ course_name }}<br>
+                            Admission Year {{ parts[1] }}<br>
+                            Semester {{ parts[2] }}<br>
+                            Batch {{ parts[3] }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -361,35 +288,6 @@
             </div>
         </div>
     </div>
-</div>
-
-<!-- Print Section (Hidden until print) -->
-<div class="print-section">
-    <div class="print-header">
-        <h2 id="print-title"></h2>
-        <p id="print-details"></p>
-    </div>
-
-    <h3>Timetable</h3>
-    <table class="print-table" id="print-timetable-table">
-        <!-- Will be filled dynamically when printing -->
-    </table>
-
-    <div class="page-break"></div>
-
-    <h3>Subject Summary</h3>
-    <table class="print-table" id="print-summary-table">
-        <thead>
-        <tr>
-            <th>Subject Name</th>
-            <th>Subject Code</th>
-            <th>Teacher</th>
-        </tr>
-        </thead>
-        <tbody>
-        <!-- Will be filled dynamically when printing -->
-        </tbody>
-    </table>
 </div>
 
 <!-- Save Timetable Form (hidden) -->
@@ -451,64 +349,27 @@
                 bootstrap.Tab.getOrCreateInstance(tabToActivate).show();
             }
         }
-
-        // Update the subject summary table
-        updateSubjectSummary();
+        
+        // Update the print timetable link with the current batch information
+        updatePrintTimetableLink();
     }
-
-    // Update the subject summary table for the current batch
-    function updateSubjectSummary() {
-        // Find which batch tab is active
-        const activeTab = document.querySelector('#batchTabs .nav-link.active');
-        if (!activeTab) return;
-
-        // Get the index of the active batch (1-based)
-        const batchIndex = activeTab.id.split('-')[1];
-
-        // Get the summary table body
-        const summaryTableBody = document.getElementById(`summary-table-body-${batchIndex}`);
-        if (!summaryTableBody) return;
-
-        // Clear existing content
-        summaryTableBody.innerHTML = '';
-
-        // Get the subjects for this batch
-        const batchSubjects = allSubjects[currentBatch];
-        if (!batchSubjects) return;
-
-        // Get the timetable for this batch to find which teachers are assigned
-        const assignedSubjects = new Map();
-
-        // Get all cells in the current batch's timetable
-        const timetableTable = document.querySelector(`table.timetable-table[data-batch="${currentBatch}"]`);
-        if (timetableTable) {
-            const cells = timetableTable.querySelectorAll('.timetable-cell .timetable-content');
-            cells.forEach(cell => {
-                const subjectName = cell.getAttribute('data-subject-name');
-                const teacherName = cell.getAttribute('data-teacher-name');
-
-                // Store the subject and its assigned teacher
-                assignedSubjects.set(subjectName, teacherName);
-            });
-        }
-
-        // Add each subject to the summary table
-        for (const [subjectName, subjectData] of Object.entries(batchSubjects)) {
-            const tr = document.createElement('tr');
-
-            // Get the assigned teacher, or use the first available one if none assigned
-            let assignedTeacher = assignedSubjects.get(subjectName);
-            if (!assignedTeacher && subjectData.teachers.length > 0) {
-                assignedTeacher = subjectData.teachers[0].teacher_name;
+    
+    // Function to update the print timetable link with current batch information
+    function updatePrintTimetableLink() {
+        const printLink = document.getElementById('print-timetable-link');
+        if (printLink && currentBatch) {
+            // Parse the batch string to get individual components
+            const batchParts = currentBatch.split(',');
+            if (batchParts.length >= 4) {
+                const courseId = batchParts[0].trim().replace('{', '').replace('}', '');
+                const year = batchParts[1].trim();
+                const semester = batchParts[2].trim();
+                const batchId = batchParts[3].trim();
+                
+                // Update the href with query parameters
+                printLink.href = "{{ url_for('print_timetable') }}" + 
+                    `?course_id=${courseId}&year=${year}&semester=${semester}&batch_id=${batchId}`;
             }
-
-            tr.innerHTML = `
-                <td>${subjectName}</td>
-                <td>${subjectData.subject_code}</td>
-                <td>${assignedTeacher || 'Not assigned'}</td>
-            `;
-
-            summaryTableBody.appendChild(tr);
         }
     }
 
@@ -551,9 +412,6 @@
 
         // Remove the 'selected' class
         selectedCell.classList.remove('selected');
-
-        // Update the subject summary table
-        updateSubjectSummary();
     }
 
     // Remove subject from cell
@@ -561,9 +419,6 @@
         const contentDiv = button.parentElement;
         const cell = contentDiv.parentElement;
         cell.removeChild(contentDiv);
-
-        // Update the subject summary table
-        updateSubjectSummary();
     }
 
     // Drag and drop functionality
@@ -643,110 +498,6 @@
                 sourceCell.appendChild(otherContent);
             }
         }
-
-        // Update the subject summary table
-        updateSubjectSummary();
-    }
-
-    // Print timetable function
-    function printTimetable() {
-        // Get active batch tab
-        const activeTab = document.querySelector('#batchTabs .nav-link.active');
-        if (!activeTab) return;
-
-        // Get batch details
-        const batchDetails = activeTab.textContent.trim();
-
-        // Set title and details for the print view
-        document.getElementById('print-title').textContent = `Timetable`;
-        document.getElementById('print-details').textContent = batchDetails;
-
-        // Get the current timetable table
-        const currentTimetableTable = document.querySelector('.tab-pane.active .timetable-table');
-        if (!currentTimetableTable) return;
-
-        // Clone the table for printing
-        const printTimetableTable = document.getElementById('print-timetable-table');
-
-        // Clear previous content
-        printTimetableTable.innerHTML = '';
-
-        // Clone the table header
-        const headerRow = document.createElement('tr');
-        const headers = currentTimetableTable.querySelectorAll('thead th');
-        headers.forEach(header => {
-            const th = document.createElement('th');
-            th.innerHTML = header.innerHTML;
-            headerRow.appendChild(th);
-        });
-
-        // Create thead and add header row
-        const thead = document.createElement('thead');
-        thead.appendChild(headerRow);
-        printTimetableTable.appendChild(thead);
-
-        // Clone the table body
-        const tbody = document.createElement('tbody');
-        const rows = currentTimetableTable.querySelectorAll('tbody tr');
-
-        rows.forEach(row => {
-            const newRow = document.createElement('tr');
-
-            // Clone each cell
-            const cells = row.querySelectorAll('td');
-            cells.forEach(cell => {
-                const newCell = document.createElement('td');
-
-                // If it's a day header, just copy the text
-                if (cell.classList.contains('day-header')) {
-                    newCell.textContent = cell.textContent;
-                } else {
-                    // For subject cells, format appropriately for printing
-                    const content = cell.querySelector('.timetable-content');
-                    if (content) {
-                        const subjectName = content.getAttribute('data-subject-name');
-                        const teacherName = content.getAttribute('data-teacher-name');
-
-                        newCell.innerHTML = `
-                            <strong>${subjectName}</strong><br>
-                            <small>${teacherName}</small>
-                        `;
-                    }
-                }
-
-                newRow.appendChild(newCell);
-            });
-
-            tbody.appendChild(newRow);
-        });
-
-        printTimetableTable.appendChild(tbody);
-
-        // Populate the summary table
-        const summaryTable = document.getElementById('print-summary-table');
-        const summaryTbody = summaryTable.querySelector('tbody');
-        summaryTbody.innerHTML = '';
-
-        // Get the current summary table
-        const currentSummaryTable = document.querySelector('.tab-pane.active .summary-table table tbody');
-        if (currentSummaryTable) {
-            const summaryRows = currentSummaryTable.querySelectorAll('tr');
-            summaryRows.forEach(row => {
-                const newRow = document.createElement('tr');
-                const cells = row.querySelectorAll('td');
-
-                cells.forEach(cell => {
-                    const newCell = document.createElement('td');
-                    newCell.textContent = cell.textContent;
-                    newRow.appendChild(newCell);
-                });
-
-                summaryTbody.appendChild(newRow);
-            });
-        }
-
-        // Print the page
-        window.print();
     }
 
     // Cell selection
@@ -766,20 +517,27 @@
         const batchTabs = document.querySelectorAll('#batchTabs .nav-link');
         batchTabs.forEach(tab => {
             tab.addEventListener('shown.bs.tab', function(event) {
-                // Update the current batch when tab changes
-                currentBatch = event.target.textContent.trim();
-
-                // Update the batch select dropdown to match
-                const batchSelect = document.getElementById('batchSelect');
-                for (let i = 0; i < batchSelect.options.length; i++) {
-                    if (batchSelect.options[i].value === currentBatch) {
-                        batchSelect.selectedIndex = i;
-                        break;
+                // Get the tab ID to find the corresponding tab pane
+                const tabId = event.target.getAttribute('data-bs-target');
+                const tabPane = document.querySelector(tabId);
+                
+                // Find the table in this tab pane and get its batch value
+                const table = tabPane.querySelector('table.timetable-table');
+                if (table) {
+                    currentBatch = table.getAttribute('data-batch');
+                    
+                    // Update the batch select dropdown to match
+                    const batchSelect = document.getElementById('batchSelect');
+                    for (let i = 0; i < batchSelect.options.length; i++) {
+                        if (batchSelect.options[i].value === currentBatch) {
+                            batchSelect.selectedIndex = i;
+                            break;
+                        }
                     }
+                    
+                    // Update the subjects list and print link
+                    updateSubjectsList();
                 }
-
-                // Update the subjects list
-                updateSubjectsList();
             });
         });
 
@@ -787,14 +545,9 @@
         document.getElementById('save-timetable').addEventListener('click', function() {
             saveTimetable();
         });
-
-        // Print button handler
-        document.getElementById('print-timetable').addEventListener('click', function() {
-            printTimetable();
-        });
-
-        // Initialize the subject summary
-        updateSubjectSummary();
+        
+        // Initialize the print timetable link with the default batch
+        updatePrintTimetableLink();
     });
 
     // Save timetable to database
@@ -817,28 +570,24 @@
                 // For each period in this day
                 for (let period = 0; period < {{ periods_per_day }}; period++) {
                     const cell = table.querySelector(`td[data-day="${day}"][data-period="${period}"]`);
-                    const content = cell ? cell.querySelector('.timetable-content
-                        const cell = table.querySelector(`td[data-day="${day}"][data-period="${period}"]`);
                     const content = cell ? cell.querySelector('.timetable-content') : null;
 
                     if (content) {
-                        timetableData[batch][day][period] = {
+                        timetableData[batch][day].push({
                             subject_id: content.getAttribute('data-subject-id'),
                             teacher_id: content.getAttribute('data-teacher-id'),
                             subject_name: content.getAttribute('data-subject-name'),
                             teacher_name: content.getAttribute('data-teacher-name')
-                        };
+                        });
                     } else {
-                        timetableData[batch][day][period] = null;
+                        timetableData[batch][day].push(null); // Empty cell
                     }
                 }
             });
         });
 
-        // Set the form data
+        // Set the form value and submit
         document.getElementById('timetable-data').value = JSON.stringify(timetableData);
-
-        // Submit the form
         document.getElementById('save-form').submit();
     }
 </script>

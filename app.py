@@ -1205,7 +1205,8 @@ def print_timetable():
             ORDER BY course_id, year, semester, batch_id 
             LIMIT 1
         """
-        cursor = mysql.connection.cursor()
+        db = get_db_connection()
+        cursor = db.cursor(dictionary=True)
         cursor.execute(query)
         result = cursor.fetchone()
 
@@ -1216,14 +1217,15 @@ def print_timetable():
             batch_id = result['batch_id']
 
     # Get course name
-    cursor = mysql.connection.cursor()
+    db = get_db_connection()
+    cursor = db.cursor(dictionary=True)
     cursor.execute("SELECT name FROM courses WHERE id = %s", (course_id,))
     course_result = cursor.fetchone()
     course_name = course_result['name'] if course_result else "Unknown Course"
 
     # Get days and periods_per_day (assuming these are constants or configuration)
     days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-    periods_per_day = 6  # Adjust as needed
+    periods_per_day = 7  # Adjust as needed
 
     # Get timetable data
     timetable = {day: [None] * periods_per_day for day in days}
@@ -1242,7 +1244,16 @@ def print_timetable():
 
     for assignment in assignments:
         day = assignment['day']
-        period = assignment['period']
+        period = int(assignment['period'])  # Ensure period is an integer
+        
+        # Skip if day is not in our days list
+        if day not in timetable:
+            continue
+            
+        # Skip if period is out of range
+        if period < 0 or period >= periods_per_day:
+            continue
+            
         timetable[day][period] = {
             'subject_id': assignment['subject_id'],
             'teacher_id': assignment['teacher_id'],
@@ -1273,6 +1284,10 @@ def print_timetable():
 
     # Get current date for footer
     current_date = datetime.now().strftime("%d-%m-%Y")
+    
+    # Close the database connection
+    cursor.close()
+    db.close()
 
     return render_template(
         'print_timetable.html',
