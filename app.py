@@ -719,6 +719,7 @@ def configure_periods():
     """Render the subject periods configuration page"""
     subjects = fetch_all_subjects()
     subject_periods = fetch_subject_periods()
+    course_map = get_course_map()  # Get the course map
 
     # Group subjects by batch
     batches = {}
@@ -738,7 +739,7 @@ def configure_periods():
 
         batches[batch_key].append(subject)
 
-    return render_template('configure_periods.html', batches=batches)
+    return render_template('configure_periods.html', batches=batches, course_map=course_map)
 
 
 @app.route('/save_periods', methods=['POST'])

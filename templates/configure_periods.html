@@ -7,73 +7,245 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --accent-color: #4cc9f0;
+            --light-bg: #f8f9fa;
+            --dark-text: #212529;
+            --light-text: #6c757d;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+        }
+        
         body {
-            background-color: #f5f5f5;
+            background-color: var(--light-bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             padding-top: 2rem;
             padding-bottom: 2rem;
+            color: var(--dark-text);
         }
+        
+        .page-header {
+            margin-bottom: 2.5rem;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+        
+        .page-header:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background: var(--primary-color);
+            border-radius: 2px;
+        }
+        
+        .page-title {
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .page-subtitle {
+            color: var(--light-text);
+            font-weight: 400;
+        }
+        
         .card {
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
             margin-bottom: 2rem;
+            overflow: hidden;
+            transition: all 0.3s ease;
         }
+        
+        .card:hover {
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+            transform: translateY(-5px);
+        }
+        
         .card-header {
-            background-color: #3f51b5;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: white;
-            font-weight: bold;
-            border-radius: 10px 10px 0 0 !important;
+            font-weight: 600;
+            padding: 1.25rem 1.5rem;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
+        
+        .card-header .btn-light {
+            background-color: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .card-header .btn-light:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
         .batch-header {
-            background-color: #7986cb;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: white;
-            padding: 0.75rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
         }
+        
+        .btn {
+            border-radius: 8px;
+            padding: 0.6rem 1.5rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
         .btn-primary {
-            background-color: #3f51b5;
-            border-color: #3f51b5;
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 6px rgba(67, 97, 238, 0.2);
         }
+        
         .btn-primary:hover {
-            background-color: #303f9f;
-            border-color: #303f9f;
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(67, 97, 238, 0.3);
         }
+        
         .btn-secondary {
-            background-color: #757575;
-            border-color: #757575;
+            background-color: #fff;
+            color: var(--dark-text);
+            border-color: #dee2e6;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         }
+        
         .btn-secondary:hover {
-            background-color: #616161;
-            border-color: #616161;
+            background-color: #f8f9fa;
+            color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.08);
         }
+        
+        .btn-lg {
+            padding: 0.8rem 2rem;
+            font-size: 1.1rem;
+        }
+        
         .alert {
-            border-radius: 8px;
+            border-radius: 12px;
+            border: none;
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
+        
+        .alert-success {
+            background-color: rgba(46, 204, 113, 0.1);
+            color: var(--success-color);
+        }
+        
         .table {
-            --bs-table-striped-bg: rgba(63, 81, 181, 0.05);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
         }
-        .validation-error {
-            color: #f44336;
-            font-size: 0.8rem;
-            margin-top: 0.25rem;
-        }
-        .form-control:focus {
-            border-color: #3f51b5;
-            box-shadow: 0 0 0 0.25rem rgba(63, 81, 181, 0.25);
-        }
-        .help-icon {
-            color: #3f51b5;
-            cursor: pointer;
-        }
+        
         .table th {
-            background-color: rgba(63, 81, 181, 0.1);
+            background-color: rgba(67, 97, 238, 0.08);
+            color: var(--primary-color);
+            font-weight: 600;
+            padding: 1rem;
+            border-top: none;
+            border-bottom: 2px solid rgba(67, 97, 238, 0.1);
         }
+        
+        .table td {
+            padding: 1rem;
+            vertical-align: middle;
+            border-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(67, 97, 238, 0.02);
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+        
+        .validation-error {
+            color: var(--danger-color);
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .form-control {
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+        }
+        
+        .input-group-text {
+            background-color: rgba(67, 97, 238, 0.08);
+            color: var(--primary-color);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 0 8px 8px 0;
+            font-weight: 500;
+        }
+        
         .breadcrumb {
             margin-bottom: 1.5rem;
+            background-color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
-        .input-group-text {
-            background-color: #e8eaf6;
-            color: #3f51b5;
+        
+        .breadcrumb-item a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .breadcrumb-item a:hover {
+            color: var(--secondary-color);
+        }
+        
+        .breadcrumb-item.active {
+            color: var(--light-text);
+            font-weight: 500;
+        }
+        
+        .breadcrumb-item+.breadcrumb-item::before {
+            color: var(--light-text);
         }
     </style>
 </head>
@@ -84,14 +256,14 @@
                 <!-- Breadcrumb -->
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{{ url_for('index') }}"><i class="bi bi-house-door"></i> Home</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Configure Subject Periods</li>
                     </ol>
                 </nav>
 
-                <div class="text-center mb-4">
-                    <h1 class="display-5">Configure Subject Periods</h1>
-                    <p class="lead">Set how many periods each subject should be taught per day and week</p>
+                <div class="text-center mb-4 page-header">
+                    <h1 class="display-5 page-title">Configure Subject Periods</h1>
+                    <p class="lead page-subtitle">Set how many periods each subject should be taught per day and week</p>
                 </div>
 
                 {% if request.args.get('success') %}
@@ -102,9 +274,9 @@
 
                 <div class="card mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <span>Configuration Instructions</span>
+                        <span><i class="bi bi-info-circle me-2"></i>Configuration Instructions</span>
                         <button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#instructionsCollapse" aria-expanded="false">
-                            <i class="bi bi-info-circle"></i>
+                            <i class="bi bi-chevron-down"></i>
                         </button>
                     </div>
                     <div class="collapse" id="instructionsCollapse">
@@ -120,19 +292,32 @@
                 </div>
 
                 <form action="{{ url_for('save_periods') }}" method="post" id="periodsForm">
-                    <div class="d-flex justify-content-between mb-3">
+                    <div class="d-flex justify-content-between mb-4">
                         <a href="{{ url_for('index') }}" class="btn btn-secondary">
-                            <i class="bi bi-arrow-left me-1"></i>Back to Home
+                            <i class="bi bi-arrow-left"></i> Back to Home
                         </a>
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-save me-1"></i>Save All Changes
+                            <i class="bi bi-save"></i> Save All Changes
                         </button>
                     </div>
 
                     {% for batch_name, subjects in batches.items() %}
                     <div class="card">
                         <div class="card-header">
-                            Batch: {{ batch_name }}
+                            <i class="bi bi-people-fill me-2"></i>
+                            {% set parts = batch_name.split(',') %}
+                            {% set course_id = parts[0].strip("{}") %}
+                            {% if course_map and course_id in course_map %}
+                                {% set course_name = course_map[course_id] %}
+                            {% else %}
+                                {% set course_name = "Course " + course_id %}
+                            {% endif %}
+                            <span class="d-flex flex-column flex-md-row gap-md-3">
+                                <span><strong>Course:</strong> {{ course_name }}</span>
+                                <span><strong>Admission Year:</strong> {{ parts[1] }}</span>
+                                <span><strong>Semester:</strong> {{ parts[2] }}</span>
+                                <span><strong>Batch:</strong> {{ parts[3] }}</span>
+                            </span>
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
@@ -148,7 +333,7 @@
                                     <tbody>
                                         {% for subject in subjects %}
                                         <tr>
-                                            <td>{{ subject.subject_code }}</td>
+                                            <td><span class="badge bg-light text-primary">{{ subject.subject_code }}</span></td>
                                             <td>{{ subject.subject_name }}</td>
                                             <td>
                                                 <div class="input-group">
@@ -215,7 +400,7 @@
                     const weekValue = parseInt(weekInput.value) || 0;
 
                     if (weekValue < dayValue) {
-                        errorDiv.textContent = 'Weekly periods must be ≥ daily periods';
+                        errorDiv.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> Weekly periods must be ≥ daily periods';
                         isValid = false;
                     } else {
                         errorDiv.textContent = '';
@@ -248,9 +433,6 @@
                     }
                 }
             });
-
-            // Validate on page load
-            validateInputs();
         });
     </script>
 </body>

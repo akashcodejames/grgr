@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Timetable</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/timetable_editor.css') }}" rel="stylesheet">
     <style>
         body {
             background-color: #f5f5f5;
@@ -118,83 +120,89 @@
     </style>
 </head>
 <body>
-<div class="container-fluid">
+<div class="container">
+    <div class="page-header text-center">
+        <h1 class="page-title">Edit Timetable</h1>
+        <p class="page-subtitle">Drag and drop subjects to rearrange the timetable</p>
+    </div>
+
     <div class="row mb-4">
-        <div class="col-12 text-center">
-            <h1 class="display-4">Edit Timetable</h1>
-            <p class="lead">Drag and drop subjects to rearrange the timetable</p>
-            <div class="d-flex justify-content-center gap-3">
-                <button id="save-timetable" class="btn btn-primary">Save Changes</button>
-                <a href="{{ url_for('view_saved_timetable') }}" class="btn btn-outline-secondary">View Saved
-                    Timetable</a>
-                <a id="print-timetable-link" href="{{ url_for('print_timetable') }}" class="btn btn-outline-primary">Advanced Print View</a>
-                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Back to Home</a>
+        <div class="col-12">
+            <div class="d-flex justify-content-center gap-2">
+                <button id="save-timetable" class="btn btn-primary">
+                    <i class="bi bi-save me-1"></i> Save Changes
+                </button>
+                <a href="{{ url_for('print_timetable') }}" id="print-timetable-link" class="btn btn-outline-primary" target="_blank">
+                    <i class="bi bi-printer me-1"></i> Advanced Print View
+                </a>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-house me-1"></i> Back to Home
+                </a>
+                <button type="button" class="btn btn-outline-warning" onclick="checkConflicts()">
+                    <i class="bi bi-exclamation-triangle me-1"></i> Check Conflicts
+                </button>
             </div>
         </div>
     </div>
 
     <div class="row">
         <div class="col-md-9">
-            <!-- Batch tabs -->
             <ul class="nav nav-tabs batch-tabs" id="batchTabs" role="tablist">
                 {% for batch in batches %}
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link {% if loop.first %}active{% endif %}"
-                            id="batch-{{ loop.index }}-tab"
-                            data-bs-toggle="tab"
-                            data-bs-target="#batch-{{ loop.index }}"
-                            type="button"
-                            role="tab"
-                            aria-controls="batch-{{ loop.index }}"
+                    <button class="nav-link {% if loop.first %}active{% endif %}" 
+                            id="batch-{{ loop.index }}-tab" 
+                            data-bs-toggle="tab" 
+                            data-bs-target="#batch-{{ loop.index }}" 
+                            type="button" 
+                            role="tab" 
+                            aria-controls="batch-{{ loop.index }}" 
                             aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
                         {% set parts = batch.split(",") %}
-                            {% set course_id = parts[0].strip("{}") %}
-                            {% set course_name = course_map[course_id] %}
-
-                            <!-- Print course_name, year (batch[1]), semester (batch[2]), and batch_id (batch[3]) -->
-                            Timetable for {{ course_name }}<br>
-                            Admission Year {{ parts[1] }}<br>
-                            Semester {{ parts[2] }}<br>
-                            Batch {{ parts[3] }}
+                        {% set course_id = parts[0].strip("{}") %}
+                        {% set course_name = course_map[course_id] %}
+                        
+                        <div class="d-flex flex-column align-items-start">
+                            <span class="fw-bold text-primary">{{ course_name }}</span>
+                            <small>Year: {{ parts[1] }} | Sem: {{ parts[2] }} | Batch: {{ parts[3] }}</small>
+                        </div>
                     </button>
                 </li>
                 {% endfor %}
             </ul>
 
-            <!-- Timetable tab content -->
-            <div class="tab-content" id="batchTabContent">
+            <div class="tab-content" id="batchTabsContent">
                 {% for batch in batches %}
-                <div class="tab-pane fade {% if loop.first %}show active{% endif %}"
-                     id="batch-{{ loop.index }}"
-                     role="tabpanel"
-                     aria-labelledby="batch-{{ loop.index }}-tab">
-
+                <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
+                     id="batch-{{ loop.index }}" 
+                     role="tabpanel" 
+                     aria-labelledby="batch-{{ loop.index }}-tab"
+                     data-batch-id="{{ batch }}"
+                     data-batch-name="{% set parts = batch.split(',') %}{{ course_map[parts[0].strip('{}')].strip() }} - Year {{ parts[1].strip() }} - Sem {{ parts[2].strip() }} - Batch {{ parts[3].strip() }}">
+                    
                     <div class="card">
-                        <div class="card-header">
-                            <!-- Extract course_id to get course_name -->
-                            {% set parts = batch.split(",") %}
-                            {% set course_id = parts[0].strip("{}") %}
-                            {% set course_name = course_map[course_id] %}
-
-                            <!-- Print course_name, year (batch[1]), semester (batch[2]), and batch_id (batch[3]) -->
-                            Timetable for {{ course_name }}<br>
-                            Admission Year {{ parts[1] }}<br>
-                            Semester {{ parts[2] }}<br>
-                            Batch {{ parts[3] }}
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="bi bi-calendar-week me-2"></i>
+                                Timetable for {{ course_map[batch.split(',')[0].strip('{}')].strip() }}
+                            </span>
+                            <span class="badge bg-primary">
+                                <i class="bi bi-people me-1"></i>
+                                Batch {{ batch.split(',')[3].strip() }}
+                            </span>
                         </div>
-                        <div class="card-body p-2">
+                        <div class="card-body">
                             <div class="table-responsive">
                                 <table class="table table-bordered timetable-table" data-batch="{{ batch }}">
                                     <thead>
                                     <tr>
-                                        <th class="text-center">Day/Period</th>
+                                        <th class="text-center day-header">Day / Period</th>
                                         {% for i in range(periods_per_day) %}
                                         <th class="text-center period-header">
-                                            Period {{ i+1 }}
-                                            {% if i == 2 %}
-                                            <div><small>(Before Lunch)</small></div>
-                                            {% elif i == 3 %}
-                                            <div><small>(After Lunch)</small></div>
+                                            {% if i < 3 %}
+                                            Period {{ i + 1 }}
+                                            {% else %}
+                                            Period {{ i + 1 }}
                                             {% endif %}
                                         </th>
                                         {% endfor %}
@@ -207,25 +215,19 @@
                                         {% for i in range(periods_per_day) %}
                                         <td class="timetable-cell"
                                             data-day="{{ day }}"
-                                            data-period="{{ i }}"
-                                            ondrop="drop(event)"
-                                            ondragover="allowDrop(event)"
-                                            ondragleave="dragLeave(event)">
+                                            data-period="{{ i }}">
 
                                             {% if timetable[batch][day][i] %}
                                             <div class="timetable-content"
                                                  draggable="true"
-                                                 ondragstart="drag(event)"
                                                  data-subject-id="{{ timetable[batch][day][i].subject_id }}"
                                                  data-teacher-id="{{ timetable[batch][day][i].teacher_id }}"
                                                  data-subject-name="{{ timetable[batch][day][i].subject_name }}"
                                                  data-teacher-name="{{ timetable[batch][day][i].teacher_name }}">
 
-                                                <button class="btn btn-sm btn-danger remove-btn"
-                                                        onclick="removeSubject(this)">×
-                                                </button>
+                                                <button class="remove-btn" title="Remove">×</button>
                                                 <strong>{{ timetable[batch][day][i].subject_name }}</strong>
-                                                <small>{{ timetable[batch][day][i].teacher_name }}</small>
+                                                <small class="text-muted">{{ timetable[batch][day][i].teacher_name }}</small>
                                             </div>
                                             {% endif %}
                                         </td>
@@ -245,22 +247,23 @@
         <div class="col-md-3">
             <div class="card sticky-top sticky-top-offset">
                 <div class="card-header">
+                    <i class="bi bi-journal-text me-2"></i>
                     Available Subjects
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <label for="batchSelect" class="form-label">Select Batch:</label>
-                        <select class="form-select" id="batchSelect" onchange="updateSubjectsList(); updatePrintTimetableLink();">
+                        <label for="batchSelect" class="form-label">
+                            <i class="bi bi-filter-circle me-1"></i>
+                            Select Batch:
+                        </label>
+                        <select class="form-select" id="batchSelect">
                             {% for batch in batches %}
-                            <option value="{{ batch }}">{% set parts = batch.split(",") %}
-                            {% set course_id = parts[0].strip("{}") %}
-                            {% set course_name = course_map[course_id] %}
-
-                            <!-- Print course_name, year (batch[1]), semester (batch[2]), and batch_id (batch[3]) -->
-                            Timetable for {{ course_name }}<br>
-                            Admission Year {{ parts[1] }}<br>
-                            Semester {{ parts[2] }}<br>
-                            Batch {{ parts[3] }}</option>
+                            <option value="{{ batch }}">
+                                {% set parts = batch.split(",") %}
+                                {% set course_id = parts[0].strip("{}") %}
+                                {% set course_name = course_map[course_id] %}
+                                {{ course_name }} - Year {{ parts[1] }} - Sem {{ parts[2] }} - Batch {{ parts[3] }}
+                            </option>
                             {% endfor %}
                         </select>
                     </div>
@@ -268,9 +271,12 @@
                     <div id="subjectsList" class="subject-list">
                         {% for subject_name, subject_data in all_subjects[batches[0]].items() %}
                         <div class="subject-item">
-                            <div><strong>{{ subject_name }}</strong> ({{ subject_data.subject_code }})</div>
+                            <div><strong>{{ subject_name }}</strong> <span class="text-muted">({{ subject_data.subject_code }})</span></div>
                             <div class="mt-1">
-                                <label class="form-label">Select Teacher:</label>
+                                <label class="form-label">
+                                    <i class="bi bi-person-badge me-1"></i>
+                                    Select Teacher:
+                                </label>
                                 <select class="form-select teacher-select">
                                     {% for teacher in subject_data.teachers %}
                                     <option value="{{ teacher.teacher_id }}">{{ teacher.teacher_name }}</option>
@@ -278,7 +284,10 @@
                                 </select>
                             </div>
                             <button class="btn btn-sm btn-primary mt-2"
-                                    onclick="addSubject('{{ subject_name }}', '{{ subject_data.subject_id }}', this)">
+                                    data-subject-name="{{ subject_name }}"
+                                    data-subject-id="{{ subject_data.subject_id }}"
+                                    data-subject-code="{{ subject_data.subject_code }}">
+                                <i class="bi bi-plus-circle me-1"></i>
                                 Add to Timetable
                             </button>
                         </div>
@@ -291,305 +300,32 @@
 </div>
 
 <!-- Save Timetable Form (hidden) -->
-<form id="save-form" action="{{ url_for('update_timetable') }}" method="POST" style="display: none;">
+<form id="timetable-form" action="{{ url_for('update_timetable') }}" method="POST" style="display: none;">
     <input type="hidden" id="timetable-data" name="timetable_data" value="">
 </form>
 
+<!-- Hidden teacher data for subjects -->
+<div style="display: none;">
+    {% for batch in batches %}
+        {% for subject_name, subject_data in all_subjects[batch].items() %}
+            <div id="teacher-data-{{ subject_data.subject_id }}">
+                {% for teacher in subject_data.teachers %}
+                    <option value="{{ teacher.teacher_id }}">{{ teacher.teacher_name }}</option>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    {% endfor %}
+</div>
+
+<!-- Store template data in hidden inputs for JavaScript access -->
+<div style="display: none;">
+    <input type="hidden" id="all-subjects-data" value='{{ all_subjects|tojson }}'>
+    <input type="hidden" id="current-batch-data" value='{{ batches[0] }}'>
+    <input type="hidden" id="all-days-data" value='{{ days|tojson }}'>
+    <input type="hidden" id="periods-per-day-data" value='{{ periods_per_day }}'>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    // Store all subjects data
-    const allSubjects = {{ all_subjects|tojson }};
-
-    // Current active batch (start with the first one)
-    let currentBatch = '{{ batches[0] }}';
-
-    // Update the subjects list when batch changes
-    function updateSubjectsList() {
-        currentBatch = document.getElementById('batchSelect').value;
-        const subjectsListElement = document.getElementById('subjectsList');
-
-        // Clear existing content
-        subjectsListElement.innerHTML = '';
-
-        // Add subjects for selected batch
-        const batchSubjects = allSubjects[currentBatch];
-        for (const [subjectName, subjectData] of Object.entries(batchSubjects)) {
-            const subjectElement = document.createElement('div');
-            subjectElement.className = 'subject-item';
-
-            let teacherOptions = '';
-            subjectData.teachers.forEach(teacher => {
-                teacherOptions += `<option value="${teacher.teacher_id}">${teacher.teacher_name}</option>`;
-            });
-
-            subjectElement.innerHTML = `
-                <div><strong>${subjectName}</strong> (${subjectData.subject_code})</div>
-                <div class="mt-1">
-                    <label class="form-label">Select Teacher:</label>
-                    <select class="form-select teacher-select">
-                        ${teacherOptions}
-                    </select>
-                </div>
-                <button class="btn btn-sm btn-primary mt-2"
-                        onclick="addSubject('${subjectName}', '${subjectData.subject_id}', this)">
-                    Add to Timetable
-                </button>
-            `;
-
-            subjectsListElement.appendChild(subjectElement);
-        }
-
-        // Also update the active tab to match the selected batch
-        const batchIndex = Array.from(document.querySelectorAll('#batchTabs .nav-link'))
-            .findIndex(tab => tab.textContent.trim() === currentBatch);
-
-        if (batchIndex !== -1) {
-            const tabToActivate = document.querySelector(`#batch-${batchIndex + 1}-tab`);
-            if (tabToActivate) {
-                bootstrap.Tab.getOrCreateInstance(tabToActivate).show();
-            }
-        }
-        
-        // Update the print timetable link with the current batch information
-        updatePrintTimetableLink();
-    }
-    
-    // Function to update the print timetable link with current batch information
-    function updatePrintTimetableLink() {
-        const printLink = document.getElementById('print-timetable-link');
-        if (printLink && currentBatch) {
-            // Parse the batch string to get individual components
-            const batchParts = currentBatch.split(',');
-            if (batchParts.length >= 4) {
-                const courseId = batchParts[0].trim().replace('{', '').replace('}', '');
-                const year = batchParts[1].trim();
-                const semester = batchParts[2].trim();
-                const batchId = batchParts[3].trim();
-                
-                // Update the href with query parameters
-                printLink.href = "{{ url_for('print_timetable') }}" + 
-                    `?course_id=${courseId}&year=${year}&semester=${semester}&batch_id=${batchId}`;
-            }
-        }
-    }
-
-    // Add subject to the currently selected cell
-    function addSubject(subjectName, subjectId, buttonElement) {
-        const selectedCell = document.querySelector('.timetable-cell.selected');
-        if (!selectedCell) {
-            alert('Please select a cell in the timetable first');
-            return;
-        }
-
-        // Get the selected teacher
-        const teacherSelect = buttonElement.previousElementSibling.querySelector('.teacher-select');
-        const teacherId = teacherSelect.value;
-        const teacherName = teacherSelect.options[teacherSelect.selectedIndex].text;
-
-        // Create content for the cell
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'timetable-content';
-        contentDiv.draggable = true;
-        contentDiv.setAttribute('ondragstart', 'drag(event)');
-        contentDiv.setAttribute('data-subject-id', subjectId);
-        contentDiv.setAttribute('data-teacher-id', teacherId);
-        contentDiv.setAttribute('data-subject-name', subjectName);
-        contentDiv.setAttribute('data-teacher-name', teacherName);
-
-        contentDiv.innerHTML = `
-            <button class="btn btn-sm btn-danger remove-btn" onclick="removeSubject(this)">×</button>
-            <strong>${subjectName}</strong>
-            <small>${teacherName}</small>
-        `;
-
-        // If the cell already has content, remove it
-        while (selectedCell.firstChild) {
-            selectedCell.removeChild(selectedCell.firstChild);
-        }
-
-        // Add the new content
-        selectedCell.appendChild(contentDiv);
-
-        // Remove the 'selected' class
-        selectedCell.classList.remove('selected');
-    }
-
-    // Remove subject from cell
-    function removeSubject(button) {
-        const contentDiv = button.parentElement;
-        const cell = contentDiv.parentElement;
-        cell.removeChild(contentDiv);
-    }
-
-    // Drag and drop functionality
-    function drag(ev) {
-        const content = ev.target;
-        ev.dataTransfer.setData('text/plain', ''); // Required for Firefox
-        ev.dataTransfer.setData('subject-id', content.getAttribute('data-subject-id'));
-        ev.dataTransfer.setData('teacher-id', content.getAttribute('data-teacher-id'));
-        ev.dataTransfer.setData('subject-name', content.getAttribute('data-subject-name'));
-        ev.dataTransfer.setData('teacher-name', content.getAttribute('data-teacher-name'));
-    }
-
-    function allowDrop(ev) {
-        ev.preventDefault();
-        ev.currentTarget.classList.add('dragover');
-    }
-
-    function dragLeave(ev) {
-        ev.currentTarget.classList.remove('dragover');
-    }
-
-    function drop(ev) {
-        ev.preventDefault();
-        const targetCell = ev.currentTarget;
-        targetCell.classList.remove('dragover');
-
-        // Get the data
-        const subjectId = ev.dataTransfer.getData('subject-id');
-        const teacherId = ev.dataTransfer.getData('teacher-id');
-        const subjectName = ev.dataTransfer.getData('subject-name');
-        const teacherName = ev.dataTransfer.getData('teacher-name');
-
-        if (!subjectId || !teacherId) return; // Skip if no data
-
-        // If swapping with another subject, store the other cell's content
-        let otherContent = null;
-        if (targetCell.querySelector('.timetable-content')) {
-            otherContent = targetCell.querySelector('.timetable-content');
-            otherContent.remove();
-        }
-
-        // Create new content for the target cell
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'timetable-content';
-        contentDiv.draggable = true;
-        contentDiv.setAttribute('ondragstart', 'drag(event)');
-        contentDiv.setAttribute('data-subject-id', subjectId);
-        contentDiv.setAttribute('data-teacher-id', teacherId);
-        contentDiv.setAttribute('data-subject-name', subjectName);
-        contentDiv.setAttribute('data-teacher-name', teacherName);
-
-        contentDiv.innerHTML = `
-            <button class="btn btn-sm btn-danger remove-btn" onclick="removeSubject(this)">×</button>
-            <strong>${subjectName}</strong>
-            <small>${teacherName}</small>
-        `;
-
-        // Add to the target cell
-        targetCell.appendChild(contentDiv);
-
-        // If we removed content from the target cell, and it's a valid drag operation
-        // (not just adding a new subject), we need to handle the swap
-        if (otherContent && ev.dataTransfer.dropEffect !== 'none') {
-            // Try to find the source cell (where the drag started)
-            const sourceCells = document.querySelectorAll('.timetable-cell');
-            let sourceCell = null;
-
-            for (const cell of sourceCells) {
-                if (cell.contains(document.activeElement) || cell === document.activeElement) {
-                    sourceCell = cell;
-                    break;
-                }
-            }
-
-            // If we found the source cell, add the swapped content to it
-            if (sourceCell && sourceCell !== targetCell) {
-                sourceCell.appendChild(otherContent);
-            }
-        }
-    }
-
-    // Cell selection
-    document.addEventListener('DOMContentLoaded', function() {
-        // Add click event listeners to cells for selection
-        const cells = document.querySelectorAll('.timetable-cell');
-        cells.forEach(cell => {
-            cell.addEventListener('click', function() {
-                // Remove selected class from all cells
-                cells.forEach(c => c.classList.remove('selected'));
-                // Add selected class to clicked cell
-                this.classList.add('selected');
-            });
-        });
-
-        // Handle batch tab changes
-        const batchTabs = document.querySelectorAll('#batchTabs .nav-link');
-        batchTabs.forEach(tab => {
-            tab.addEventListener('shown.bs.tab', function(event) {
-                // Get the tab ID to find the corresponding tab pane
-                const tabId = event.target.getAttribute('data-bs-target');
-                const tabPane = document.querySelector(tabId);
-                
-                // Find the table in this tab pane and get its batch value
-                const table = tabPane.querySelector('table.timetable-table');
-                if (table) {
-                    currentBatch = table.getAttribute('data-batch');
-                    
-                    // Update the batch select dropdown to match
-                    const batchSelect = document.getElementById('batchSelect');
-                    for (let i = 0; i < batchSelect.options.length; i++) {
-                        if (batchSelect.options[i].value === currentBatch) {
-                            batchSelect.selectedIndex = i;
-                            break;
-                        }
-                    }
-                    
-                    // Update the subjects list and print link
-                    updateSubjectsList();
-                }
-            });
-        });
-
-        // Save button handler
-        document.getElementById('save-timetable').addEventListener('click', function() {
-            saveTimetable();
-        });
-        
-        // Initialize the print timetable link with the default batch
-        updatePrintTimetableLink();
-    });
-
-    // Save timetable to database
-    function saveTimetable() {
-        // Collect timetable data
-        const timetableData = {};
-
-        // Process all batches
-        {{ batches|tojson }}.forEach(batch => {
-            timetableData[batch] = {};
-
-            // Find the table for this batch
-            const table = document.querySelector(`table.timetable-table[data-batch="${batch}"]`);
-            if (!table) return;
-
-            // Process days and periods
-            {{ days|tojson }}.forEach(day => {
-                timetableData[batch][day] = [];
-
-                // For each period in this day
-                for (let period = 0; period < {{ periods_per_day }}; period++) {
-                    const cell = table.querySelector(`td[data-day="${day}"][data-period="${period}"]`);
-                    const content = cell ? cell.querySelector('.timetable-content') : null;
-
-                    if (content) {
-                        timetableData[batch][day].push({
-                            subject_id: content.getAttribute('data-subject-id'),
-                            teacher_id: content.getAttribute('data-teacher-id'),
-                            subject_name: content.getAttribute('data-subject-name'),
-                            teacher_name: content.getAttribute('data-teacher-name')
-                        });
-                    } else {
-                        timetableData[batch][day].push(null); // Empty cell
-                    }
-                }
-            });
-        });
-
-        // Set the form value and submit
-        document.getElementById('timetable-data').value = JSON.stringify(timetableData);
-        document.getElementById('save-form').submit();
-    }
-</script>
+<script src="{{ url_for('static', filename='js/timetable_editor.js') }}"></script>
 </body>
 </html>
